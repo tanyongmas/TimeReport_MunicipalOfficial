@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ระบบรายงานประจำวัน(งานเทศกิจ)ทต.ตันหยงมัส</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Kanit', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .btn-select { transition: all 0.2s; border: 2px solid transparent; opacity: 0.8; transform: scale(0.98); }
+        .btn-select.active { border-color: #3b82f6; opacity: 1; transform: scale(1); box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2); background-color: white; }
+        .loader { border: 3px solid #e2e8f0; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen pb-20">
+
+    <div class="bg-white/95 backdrop-blur-md shadow-md pt-6 pb-6 px-4 text-center sticky top-0 z-30 rounded-b-3xl">
+        <div class="flex flex-col items-center justify-center">
+            <img src="https://img2.pic.in.th/pic/71f81565dc59a7f9545542493a5514ab.png" 
+                 alt="Logo" 
+                 class="w-auto h-28 mb-3 object-contain drop-shadow-xl transform transition hover:scale-105 duration-300">
+            <h1 class="text-2xl font-bold text-slate-800 tracking-wide">
+                ระบบรายงานประจำวัน
+            </h1>
+            <p class="text-sm text-slate-500 mt-1 font-light">
+                งานเทศกิจ เทศบาลตำบลตันหยงมัส
+            </p>
+        </div>
+    </div>
+
+    <div class="max-w-md mx-auto p-5 space-y-5 mt-2">
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <label class="block text-slate-700 mb-2 font-semibold flex items-center gap-2">
+                <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">1</span> 
+                ชื่อผู้ปฏิบัติงาน
+            </label>
+            <div class="relative">
+                <select id="employeeSelect" class="w-full p-3 pl-4 bg-slate-50 border border-slate-200 rounded-xl appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-700 transition">
+                    <option value="">กำลังโหลดรายชื่อ...</option>
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">▼</div>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <label class="block text-slate-700 mb-3 font-semibold flex items-center gap-2">
+                <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">2</span>
+                ประเภทรายงาน
+            </label>
+            <div class="grid grid-cols-3 gap-3">
+                <button onclick="selectType('เช้า', this)" class="btn-select bg-green-50 hover:bg-green-100 text-green-700 py-4 rounded-xl font-medium flex flex-col items-center gap-1">
+                    <span class="text-2xl">☀️</span><span class="text-sm">เข้าเวรเช้า</span>
+                </button>
+                <button onclick="selectType('บ่าย', this)" class="btn-select bg-orange-50 hover:bg-orange-100 text-orange-700 py-4 rounded-xl font-medium flex flex-col items-center gap-1">
+                    <span class="text-2xl">🌤</span><span class="text-sm">เข้าเวรบ่าย</span>
+                </button>
+                <button onclick="selectType('เรื่องร้องเรียน', this)" class="btn-select bg-red-50 hover:bg-red-100 text-red-700 py-4 rounded-xl font-medium flex flex-col items-center gap-1">
+                    <span class="text-2xl">📢</span><span class="text-sm">แจ้งปัญหา</span>
+                </button>
+            </div>
+
+            <div id="complaintBox" class="hidden mt-4 pt-4 border-t border-dashed border-red-100 animate-fade-in">
+                <label class="text-xs text-red-500 mb-1 block font-medium">รายละเอียดปัญหา/เหตุการณ์:</label>
+                <textarea id="complaintDetail" rows="3" class="w-full p-3 border border-red-200 rounded-xl bg-red-50/50 focus:bg-white focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 placeholder-red-300 transition" placeholder="ระบุรายละเอียด..."></textarea>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <label class="block text-slate-700 mb-2 font-semibold flex items-center gap-2">
+                <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">3</span>
+                พิกัดตำแหน่ง (GPS)
+            </label>
+            <div class="flex gap-2">
+                <input type="text" id="gpsInput" readonly class="flex-1 p-3 bg-slate-100 rounded-xl text-slate-500 text-xs font-mono border border-slate-200" placeholder="รอการระบุพิกัด...">
+                <button onclick="getLocation()" id="btnGPS" class="bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 min-w-[110px] active:scale-95">
+                    📍 <span id="gpsLabel" class="text-sm font-medium">ดึงพิกัด</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <label class="block text-slate-700 mb-2 font-semibold flex items-center gap-2">
+                <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center text-xs">4</span>
+                รูปภาพปฏิบัติงาน
+            </label>
+            
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden" onchange="previewAndResizeImage(this)">
+            
+            <div onclick="document.getElementById('cameraInput').click()" 
+                 class="border-2 border-dashed border-slate-300 rounded-2xl bg-slate-50 h-56 flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 hover:border-blue-400 transition relative overflow-hidden group">
+                
+                <div id="cameraIcon" class="text-center group-hover:scale-110 transition duration-300">
+                    <div class="text-5xl mb-3 opacity-40 grayscale">📸</div>
+                    <span class="text-sm text-slate-500 font-medium">แตะเพื่อถ่ายภาพ</span>
+                    <p class="text-[10px] text-slate-400 mt-1">(ระบบจะย่อรูปให้อัตโนมัติ)</p>
+                </div>
+                
+                <img id="preview" class="hidden w-full h-full object-cover absolute inset-0">
+                
+                <div id="processingImg" class="hidden absolute inset-0 bg-white/80 flex flex-col items-center justify-center z-20">
+                    <div class="loader mb-2"></div>
+                    <span class="text-xs text-blue-600 font-bold">กำลังย่อไฟล์รูป...</span>
+                </div>
+
+                <button id="btnRemoveImg" onclick="removeImage(event)" class="hidden absolute top-2 right-2 bg-red-500 text-white w-8 h-8 rounded-full shadow-lg z-10 flex items-center justify-center hover:bg-red-600">✕</button>
+            </div>
+        </div>
+
+        <button onclick="submitData()" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-4 rounded-2xl shadow-lg shadow-blue-200 font-bold text-lg hover:shadow-xl hover:-translate-y-1 active:translate-y-0 active:scale-95 transition duration-200 mt-2 flex items-center justify-center gap-2">
+            <span>🚀</span> ส่งรายงานเข้าระบบ
+        </button>
+        
+        <div class="text-center text-xs text-slate-400 mt-6 pb-4">
+            งานเทศกิจ สำนักปลัดเทศบาล เทศบาลตำบลตันหยงมัส © 2025
+        </div>
+
+    </div>
+
+    <script>
+        // ******************************************************
+        // ⚠️ ใส่ URL Web App ของคุณที่นี่
+        // ******************************************************
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzz8WfnnTgUKlv2I2c-cQ627aLzyrfNRcawmSrjNC97szsZzLuL-a0zb4W-Xx12mFBv/exec';
+
+        let base64Image = "";
+        let selectedType = "";
+
+        window.onload = loadEmployees;
+
+        function loadEmployees() {
+            fetch(SCRIPT_URL + '?op=getEmployees')
+                .then(res => res.json())
+                .then(data => {
+                    const select = document.getElementById('employeeSelect');
+                    if (data.status === 'error') throw new Error(data.message);
+                    select.innerHTML = '<option value="">-- เลือกเจ้าหน้าที่ --</option>';
+                    data.forEach(name => {
+                        const opt = document.createElement('option');
+                        opt.value = name; opt.innerText = name;
+                        select.appendChild(opt);
+                    });
+                })
+                .catch(err => {
+                    console.error(err);
+                    document.getElementById('employeeSelect').innerHTML = '<option>❌ โหลดรายชื่อไม่สำเร็จ</option>';
+                });
+        }
+
+        function selectType(type, btn) {
+            selectedType = type;
+            document.querySelectorAll('.btn-select').forEach(b => {
+                b.classList.remove('active', 'ring-2', 'ring-blue-500');
+            });
+            btn.classList.add('active', 'ring-2', 'ring-blue-500');
+
+            const box = document.getElementById('complaintBox');
+            if (type === 'เรื่องร้องเรียน') {
+                box.classList.remove('hidden');
+            } else {
+                box.classList.add('hidden');
+                document.getElementById('complaintDetail').value = ''; 
+            }
+        }
+
+        function getLocation() {
+            const btn = document.getElementById('btnGPS');
+            const label = document.getElementById('gpsLabel');
+            
+            btn.disabled = true;
+            label.innerHTML = '<div class="loader"></div>'; 
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude.toFixed(6);
+                        const lng = position.coords.longitude.toFixed(6);
+                        document.getElementById("gpsInput").value = `${lat}, ${lng}`;
+                        
+                        btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                        btn.classList.add('bg-green-500', 'hover:bg-green-600');
+                        label.innerText = 'ได้พิกัดแล้ว';
+                        btn.disabled = false;
+                    },
+                    (error) => {
+                        Swal.fire('ข้อผิดพลาด', 'ไม่สามารถดึง GPS ได้ กรุณาเปิด Location บนมือถือ', 'error');
+                        label.innerText = 'ลองใหม่';
+                        btn.disabled = false;
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
+                );
+            } else {
+                Swal.fire('ข้อผิดพลาด', 'Browser นี้ไม่รองรับ GPS', 'error');
+                btn.disabled = false;
+            }
+        }
+
+        // --- 🛠️ ฟังก์ชันใหม่: ย่อรูปภาพ (Resize Image) ---
+        function previewAndResizeImage(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // แสดงสถานะกำลังทำงาน
+                document.getElementById('cameraIcon').classList.add('hidden');
+                document.getElementById('processingImg').classList.remove('hidden');
+
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const img = new Image();
+                    img.onload = function() {
+                        // กำหนดขนาดสูงสุดที่ต้องการ (800px ก็พอสำหรับดูในมือถือและชัดเจน)
+                        const MAX_WIDTH = 800;
+                        const MAX_HEIGHT = 800;
+                        
+                        let width = img.width;
+                        let height = img.height;
+
+                        // คำนวณอัตราส่วนเพื่อย่อรูป
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+
+                        // สร้าง Canvas เพื่อวาดรูปใหม่
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext("2d");
+                        ctx.drawImage(img, 0, 0, width, height);
+
+                        // แปลงกลับเป็น Base64 (JPEG Quality 0.7 = 70%)
+                        // ช่วยลดขนาดไฟล์ลงได้เยอะมาก (จาก 5MB เหลือ ~200KB)
+                        const resizedBase64 = canvas.toDataURL("image/jpeg", 0.7);
+
+                        // แสดงผล
+                        document.getElementById('preview').src = resizedBase64;
+                        document.getElementById('preview').classList.remove('hidden');
+                        document.getElementById('processingImg').classList.add('hidden');
+                        document.getElementById('btnRemoveImg').classList.remove('hidden');
+                        
+                        // เก็บค่าไว้ส่ง
+                        base64Image = resizedBase64;
+                    }
+                    img.src = event.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+        
+        function removeImage(e) {
+            e.stopPropagation(); 
+            document.getElementById('cameraInput').value = "";
+            document.getElementById('preview').src = "";
+            document.getElementById('preview').classList.add('hidden');
+            document.getElementById('cameraIcon').classList.remove('hidden');
+            document.getElementById('btnRemoveImg').classList.add('hidden');
+            base64Image = "";
+        }
+
+        function submitData() {
+            const name = document.getElementById('employeeSelect').value;
+            const gps = document.getElementById('gpsInput').value;
+            let details = "";
+
+            if (!name) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกชื่อเจ้าหน้าที่', 'warning');
+            if (!selectedType) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาเลือกประเภทรายงาน', 'warning');
+            
+            if (selectedType === 'เรื่องร้องเรียน') {
+                details = document.getElementById('complaintDetail').value;
+                if (!details) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาระบุรายละเอียดปัญหา', 'warning');
+            }
+
+            if (!gps) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณากดปุ่มดึงพิกัด GPS', 'warning');
+            if (!base64Image) return Swal.fire('ข้อมูลไม่ครบ', 'กรุณาถ่ายรูปหน้างาน', 'warning');
+
+            // SweetAlert2 Loading
+            Swal.fire({
+                title: 'กำลังส่งข้อมูล...',
+                html: 'ระบบกำลังอัปโหลดรูปภาพและบันทึกข้อมูล',
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading() }
+            });
+
+            const payload = {
+                employee: name,
+                type: selectedType,
+                details: details,
+                gps: gps,
+                image: base64Image
+            };
+
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success'){
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งรายงานสำเร็จ!',
+                        text: 'ระบบบันทึกข้อมูลเรียบร้อยแล้ว',
+                        confirmButtonText: 'ตกลง',
+                        confirmButtonColor: '#3b82f6'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    throw new Error(data.message);
+                }
+            })
+            .catch(err => {
+                Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
+            });
+        }
+    </script>
+</body>
+</html>
